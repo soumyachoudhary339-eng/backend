@@ -12,7 +12,7 @@ export const sendfile =async(file,fileName)=>{
     const obj = {
         file,
         fileName,
-        folder: kingstastore
+        folder: "kingstastore"
     }
     return await storageInstance.upload(obj)
 }

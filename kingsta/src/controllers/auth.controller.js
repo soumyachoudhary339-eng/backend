@@ -1,6 +1,6 @@
-import userModel from "../models/user.model"
-import { sendfile } from "../services/storage.service"
-import { genrateToken } from "../utils/token"
+import userModel from "../models/user.model.js"
+import { sendfile } from "../services/storage.service.js"
+import { genrateToken } from "../utils/token.js"
 export const registerController = async (req, res) => {
     try {
         const {
@@ -43,9 +43,11 @@ export const registerController = async (req, res) => {
 
             return res.status(201).json({
                 success:true,
-                message:"User register successfully"
+                message:"User register successfully",
+                newUser
             })
     } catch (error) {
+        console.log(error)
         return res.status(500).json({
             success: false,
             message: "internal server error",
