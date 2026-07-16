@@ -76,6 +76,9 @@ const userSchema = new mongoose.Schema({
 userSchema.pre("save",function(){
     this.password= bcrypt.hashSync(this.password,10)
 })
+userSchema.method.comparePass=function(password){
+    return bcrypt.compareSync(password,this.password)
+}
 
 const userModel = mongoose.model("users", userSchema);
 
