@@ -1,7 +1,7 @@
 import express from "express"
-import { authMiddleware } from "../middlewares/auth.middleware"
-import { followUser, getMe, getUserProfile, searchUser, unfollowUser } from "../controllers/user.controller"
-import { updatePostController } from "../controllers/post.controller"
+import { authMiddleware } from "../middlewares/auth.middleware.js"
+import { followUser, getMe, getUserProfile, searchUser, unfollowUser } from "../controllers/user.controller.js"
+import { updatePostController } from "../controllers/post.controller.js"
 const router = express.Router() 
 
 router.get("/getMe",authMiddleware,getMe)

@@ -14,7 +14,7 @@ const postSchema = new mongoose.Schema({
     },
     comments:[{
         type:mongoose.Schema.ObjectId,
-        ref:comments
+        ref:"comments"
     }],
     location:{
         type:String
