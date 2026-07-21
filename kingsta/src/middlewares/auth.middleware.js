@@ -1,7 +1,7 @@
 import dotenv from "dotenv"
 dotenv.config()
 import jwt from "jsonwebtoken"
-import userModel from "../models/user.model";
+import userModel from "../models/user.model.js";
 export const authMiddleware = async(req,res,next)=>{
     try {
         let token = req.cookies.accessToken;
