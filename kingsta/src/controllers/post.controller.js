@@ -18,12 +18,13 @@ export const createPostController = async (req, res) => {
         let newPost = await postModel.create({
             caption,
             location,
-            media_urls: uploadImage.map((elem) => elem.url)
+            media_urls: uploadImage.map((elem) => elem.url),
+            user: req.user.id,
         })
         return res.status(201).json({
             success: true,
             message: "Post created successfully",
-            data, newPost
+            data:newPost
         })
     } catch (error) {
         return res.status(500).json({
@@ -36,7 +37,7 @@ export const createPostController = async (req, res) => {
 
 export const getAllPostController = async (req, res) => {
     try {
-        let allPost = await postModel.find()
+        let allPost = await postModel.find().populate("user")
         return res.status(200).json({
             success: true,
             message: "All post fetched",
@@ -53,7 +54,7 @@ export const getAllPostController = async (req, res) => {
 
 export const updatePostController = async(req,res)=>{
     try {
-        let post_id =req.params.post_id
+        let post_id =req.params.id
         if(!req.body) return res.status(400).json({
         success: false,
         message: "Fields are required",

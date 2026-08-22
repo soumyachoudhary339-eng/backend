@@ -1,4 +1,5 @@
 import userModel from "../models/user.model.js";
+import { sendfile } from "../services/storage.service.js";
 
 export const getMe = async (req, res) => {
     try {
@@ -11,12 +12,13 @@ export const getMe = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "user found successfully",
-            data: user
+             user
         })
     } catch (error) {
         return res.status(500).json({
             success: false,
             message: "Inernal server error",
+            error: error.message
         });
     }
 }
@@ -24,7 +26,10 @@ export const getMe = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
     try {
-        const { username, fullname, mobile, dob, bio } = req.body
+        console.log("REQ BODY :", req.body);
+        console.log("REQ FILE :", req.file);
+        console.log("USER :", req.user);
+        const { username, fullname, mobile, dob, bio, } = req.body
 
         const updateData = {}
         if (username) updateData.username = username
@@ -33,6 +38,18 @@ export const updateProfile = async (req, res) => {
         if (dob) updateData.dob = dob
         if (bio) updateData.bio = bio
 
+
+        if (req.file) {
+
+            const uploadfile = await sendfile(
+                req.file.buffer,
+                req.file.originalname
+            );
+
+
+            updateData.profile_pic = uploadfile.url;
+
+        }
         const updateUser = await userModel.findByIdAndUpdate(req.user.id, updateData, {
             new: true
         })
@@ -48,6 +65,7 @@ export const updateProfile = async (req, res) => {
             updateUser
         })
     } catch (error) {
+        console.log("UPDATE PROFILE ERROR :", error);
         return res.status(500).json({
             success: false,
             message: "Internal server error",

@@ -1,11 +1,11 @@
 import express from "express"
 import { authMiddleware } from "../middlewares/auth.middleware.js"
-import { followUser, getMe, getUserProfile, searchUser, unfollowUser } from "../controllers/user.controller.js"
-import { updatePostController } from "../controllers/post.controller.js"
+import { followUser, getMe, getUserProfile, searchUser, unfollowUser, updateProfile } from "../controllers/user.controller.js"
+import { upload } from "../config/multer.js"
 const router = express.Router() 
 
-router.get("/getMe",authMiddleware,getMe)
-router.patch("/update-profile",authMiddleware,updatePostController)
+router.get("/getme",authMiddleware,getMe)
+router.patch("/update-profile",authMiddleware,upload.single("image"),updateProfile)
 
 router.get("/search",authMiddleware,searchUser)
 router.patch("/follow/:id",authMiddleware,followUser)
