@@ -186,7 +186,7 @@ export const googleUser = async (req, res) => {
             success: true,
             message: "user registered with google"
         })
-         // return res.redirect("http://localhost:5173/")
+        // return res.redirect("http://localhost:5173/")
     } catch (error) {
         console.error("GOOGLE LOGIN ERROR:", error);
         return res.status(500).json({
@@ -293,11 +293,12 @@ export const verifyOtp = async (req, res) => {
 
             const attempts = await redis.incr(attemptKey);
 
-            // First attempt par 5 min expiry
+            // Set 5-minute expiry on the first failed attempt
             if (attempts === 1) {
                 await redis.expire(attemptKey, 300);
             }
-
+            // If user enters the wrong OTP 5 times,
+            // delete the OTP and attempt counter from Redis
             if (attempts >= 5) {
 
                 await redis.del(otpKey);
@@ -311,14 +312,94 @@ export const verifyOtp = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: "OTP is invalid",
-                attemptsLeft: 5-attempts
+                attemptsLeft: 5 - attempts
             });
         }
+        // Generate a JWT reset token with a 10-minute expiry
+        const resetToken = generateToken(userId, "10m");
+        // Create a Redis reset session using the userId.
+        // The userId is used to match the JWT decoded.id
+        const resetKey = `password_reset:${userId}`;
+
+        await redis.set(
+            resetKey,
+            "valid",
+            "EX",
+            600
+        );
+        // OTP is successfully verified,
+        // so delete the OTP and attempt counter from Redis
         await redis.del(otpKey);
         await redis.del(attemptKey);
+
+        // Store the reset token in an HttpOnly cookie
+        // so JavaScript cannot directly access the token
+        res.cookie("resetToken", resetToken, {
+            httpOnly: true,
+            maxAge: 10 * 60 * 1000,
+            secure: false,
+            sameSite: "strict"
+        })
         return res.status(200).json({
             success: true,
             message: "OTP verified successfully"
+        })
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            success: false,
+            message: "internal server error",
+            error
+        })
+    }
+}
+
+export const resetPassword = async (req, res) => {
+    try {
+        const { newpassword } = req.body
+        // Get the reset token from the cookie
+        // that was created during OTP verification
+        const resetToken = req.cookies.resetToken
+        if (!resetToken || !newpassword) return res.status(400).json({
+            success: false,
+            message: "email and new password is required"
+        })
+        // Verify the JWT and get the user's id from decoded.id
+        const decoded = jwt.verify(
+            resetToken,
+            process.env.JWT_SECRET
+        );
+        // Create the same Redis key using the userId
+        // that was stored during OTP verification
+        const resetKey = `password_reset:${decoded.id}`;
+        // Check whether the reset session is still valid in Redis
+        const session = await redis.get(resetKey)
+        // If Redis session does not exist,
+        // the token is expired or has already been used
+        if (!session) {
+            return res.status(401).json({
+                success: false,
+                message: "reset token is expired or already used"
+            });
+        }
+        // Find the user using the id stored inside the JWT
+        const user = await userModel.findById(decoded.id)
+        if (!user) return res.status(404).json({
+            success: false,
+            message: "user is not found"
+        })
+        // Update the user's password
+        user.password = newpassword
+        // newpassword save
+        await user.save();
+       // Delete the Redis session so the reset token
+        // cannot be used again
+        await redis.del(resetKey);
+         // Remove the reset token cookie
+        res.clearCookie("resetToken");
+        return res.status(200).json({
+            success: true,
+            message: "password is successfully updated"
         })
     } catch (error) {
         console.log(error)
