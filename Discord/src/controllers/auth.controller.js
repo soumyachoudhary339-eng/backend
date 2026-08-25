@@ -14,7 +14,7 @@ export const registerUser = async (req, res) => {
             success: false,
             message: "fleids are required"
         })
-        let upoaldfile = null
+        let uploadfile = null
         if (file) {
             uploadfile = await sendfile(file.buffer, file.orignalname)
         }
@@ -82,7 +82,7 @@ export const loginUser = async (req, res) => {
 
         const iscomparePassword = user.comparePass(password)
 
-        if (!isComparePassword) {
+        if (!iscomparePassword) {
             return res.status(401).json({
                 success: false,
                 message: "Invalid email or password"
@@ -309,7 +309,7 @@ export const verifyOtp = async (req, res) => {
                     message: "Too many invalid attempts. Please request a new OTP."
                 });
             }
-            return res.status(400).json({
+            return res.status(403).json({
                 success: false,
                 message: "OTP is invalid",
                 attemptsLeft: 5 - attempts
@@ -392,10 +392,10 @@ export const resetPassword = async (req, res) => {
         user.password = newpassword
         // newpassword save
         await user.save();
-       // Delete the Redis session so the reset token
+        // Delete the Redis session so the reset token
         // cannot be used again
         await redis.del(resetKey);
-         // Remove the reset token cookie
+        // Remove the reset token cookie
         res.clearCookie("resetToken");
         return res.status(200).json({
             success: true,
@@ -409,4 +409,170 @@ export const resetPassword = async (req, res) => {
             error
         })
     }
+}
+
+export const resendOtp = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: "email is required"
+            });
+        }
+
+        const user = await userModel.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "user is not found"
+            });
+        }
+
+        const otpKey = `otp:${email}`;
+        const attemptKey = `otp_attempts:${email}`;
+
+        await redis.del(otpKey);
+        await redis.del(attemptKey);
+
+        const otp = generateOtp();
+
+
+        const hashedOtp =  bcrypt.hashSync(otp, 10);
+
+    
+        await redis.set(
+            otpKey,
+            JSON.stringify({
+                otp: hashedOtp,
+                userId: user._id.toString()
+            }),
+            "EX",
+            300
+        );
+
+
+        await redis.set(
+            attemptKey,
+            "0",
+            "EX",
+            300
+        );
+
+    
+        await sendEmail(
+            email,
+            "Password Reset OTP",
+            `Your new OTP is ${otp}. This OTP will expire in 5 minutes.`,
+            `<div>
+                <h2>Password Reset</h2>
+                <p>Your new OTP is:</p>
+                <h1>${otp}</h1>
+                <p>This OTP will expire in 5 minutes.</p>
+                <p>If you did not request this OTP, please ignore this email.</p>
+            </div>`
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "OTP resent successfully"
+        });
+
+    } catch (error) {
+        console.log(error);
+
+        return res.status(500).json({
+            success: false,
+            message: "internal server error"
+        });
+    }
+};
+
+
+export const deleteUser = async (req, res) => {
+    try {
+        const { email, password } = req.body
+        if (!email || !password) return res.status(400).json({
+            success: false,
+            message: "all feild are required"
+        })
+
+        if (email !== req.user.email) {
+            return res.status(403).json({
+                success: false,
+                message: "you can only delete your own account"
+            });
+        }
+        const user = await userModel.findOne({ email })
+
+
+        if (!user) return res.status(404).json({
+            success: false,
+            message: "user not found"
+        })
+        const isPasswordCorrect = user.comparePass(
+            password,
+            user.password
+        );
+        if (!isPasswordCorrect) return res.status(401).json({
+            success: false,
+            message: "pessword is incorrect"
+        })
+        await userModel.findOneAndDelete({ email })
+
+        return res.status(200).json({
+            success: true,
+            message: "user is successfully deleted"
+        })
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            success: false,
+            message: "internal server error",
+            error
+        })
+    }
+}
+
+export const resetToken = async (req, res) => {
+    try {
+        const { refreshToken } = req.cookies
+        if (!refreshToken) return res.status(401).json({
+            success: false,
+            message: "unautherized"
+        })
+
+        const verifyrefreshToken = jwt.verify(refreshToken, process.env.JWT_SECRET)
+
+        const user = await userModel.findById(verifyrefreshToken.id)
+        if (!user) return res.status(404).json({
+            success: false,
+            message: "user not found"
+        })
+
+        const accessToken = generateToken(user._id, "1m")
+
+        res.cookie("accessToken", accessToken, {
+            httpOnly: true,
+            maxAge: 1 * 60 * 1000,
+            secure: false,
+            sameSite: "strict"
+        })
+
+        return res.status(200).json({
+            success: true,
+            message: "access token re-generated successfully"
+        })
+    }
+        
+     catch (error) {
+    console.log(error)
+    return res.status(500).json({
+        success: false,
+        message: "internal server error",
+        error
+    })
+}
 }

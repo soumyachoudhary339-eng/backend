@@ -1,7 +1,8 @@
 import express from 'express'
 import { upload } from '../config/multer.js'
-import { googleUser, loginUser, registerUser, resetPassword, sendOtp, verifyOtp  } from '../controllers/auth.controller.js'
+import { deleteUser, googleUser, loginUser, registerUser, resendOtp, resetPassword, resetToken, sendOtp, verifyOtp  } from '../controllers/auth.controller.js'
 import passport from '../config/passport.js'
+import { authMiddleware } from '../middlewares/auth.middleware.js'
 const router = express.Router()
 
 router.post("/register", upload.single("image"), registerUser)
@@ -11,4 +12,7 @@ router.get("/google/callback", passport.authenticate("google", { session: false 
 router.post("/send-otp",sendOtp)
 router.post("/verify-otp",verifyOtp)
 router.post("/reset-password",resetPassword)
+router.post("/resend-otp",resendOtp)
+router.post("/delete-account",authMiddleware,deleteUser)
+router.post("/resetToken",resetToken)
 export default router
