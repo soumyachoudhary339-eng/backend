@@ -39,7 +39,8 @@ const userSchema = new mongoose.Schema({
     },
     googleId: {
         type: String,
-        unique: true
+        unique: true,
+        sparse:true
     },
     authProvider: {
         type: String,
@@ -60,10 +61,10 @@ const userSchema = new mongoose.Schema({
     })
 
 userSchema.pre("save", function () {
-    if (!this.password ||!this.password.isModified("password")) {
+    if (!this.password ||!this.isModified("password")) {
         return 
     }
-        return this.password = hashSync(password, 10)
+        return this.password = hashSync(this.password, 10)
          
 })
 
