@@ -2,7 +2,7 @@
 import crypto from "crypto"
 
 const generateOtp=()=>{
- const otp = crypto.randomInt
+ return crypto.randomInt
         (1000, 10000).toString()
 }
 

@@ -25,7 +25,7 @@ export const registerUser = async (req, res) => {
             email,
             password,
             mobile_no,
-            profile_pic: upoaldfile?.url || ""
+            profile_pic: uploadfile?.url || ""
         })
 
         const accessToken = generateToken(user._id, "15m")
@@ -489,7 +489,6 @@ export const resendOtp = async (req, res) => {
         });
     }
 };
-
 
 export const deleteUser = async (req, res) => {
     try {
