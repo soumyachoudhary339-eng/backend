@@ -1,4 +1,3 @@
-import { populate } from "dotenv"
 import serverModel from "../models/server.model.js"
 import serverMemberModel from "../models/serverMember.model"
 
