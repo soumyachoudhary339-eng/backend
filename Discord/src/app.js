@@ -3,6 +3,8 @@ import { dbconnect } from "./config/db.js"
 import cookieParser from "cookie-parser"
 import authRouter from "./routes/auth.route.js"
 import userRouter from "./routes/auth.route.js"
+import serverRouter from "./routes/server.route.js"
+import serverMemberRouter from "./routes/serverMember.routes.js"
 import redis from "./config/redis.js"
 import passport from "./config/passport.js"
 
@@ -13,7 +15,8 @@ app.use(cookieParser())
 app.use(express.json())
 app.use("/api/auth", authRouter)
 app.use("/api/user", userRouter)
-
+app.use("/api/server", serverRouter)
+app.use("/api/servermember", serverMemberRouter)
 
 
 export default app
